@@ -2,3 +2,4 @@
 s3syncer
 venv
 .env
+.DS_Store
