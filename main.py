@@ -34,9 +34,6 @@ class S3Syncer:
         os.makedirs(self.temp_dir, exist_ok=True)
         os.makedirs(self.files_dir, exist_ok=True)
 
-    def download_file(self, key, filename):
-        self.s3.download_file(self.bucket_name, key, filename)
-
     def download_and_verify(self, key, filename):
         for _ in range(3):  # try to download 3 times
             self.s3.download_file(self.bucket_name, key, filename)
@@ -126,10 +123,7 @@ class Watcher(FileSystemEventHandler):
 
             if self.checksums[key] != file_checksum:
                 self.logger.info('File modified: %s. Starting download...', file_path)
-                temp_filename = os.path.join(self.files_dir, os.path.basename(file_path))
-                if self.syncer.download_and_verify(key, temp_filename):
-                    shutil.move(temp_filename, file_path)
-                    self.logger.info('File downloaded successfully: %s', file_path)
+                self.syncer.download_and_move(key, file_path)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -143,10 +137,7 @@ class Watcher(FileSystemEventHandler):
                 self.logger.info('File moved, not deleted: %s', file_path)
                 return
             self.logger.info('File deleted: %s. Starting download...', file_path)
-            temp_filename = os.path.join(self.syncer.temp_dir, os.path.basename(file_path))
-            if self.syncer.download_and_verify(key, temp_filename):
-                shutil.move(temp_filename, file_path)
-                self.logger.info('File downloaded successfully: %s', file_path)
+            self.syncer.download_and_move(key, file_path)
 
 
 if __name__ == '__main__':
